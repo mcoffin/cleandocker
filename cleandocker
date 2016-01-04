@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -e
+
+while getopts ":fci" opt; do
+	case $opt in
+		f)
+			echo "Stopping running containers"
+			running_containers=$(docker ps -q)
+			if [ ! -z "$running_containers" ]; then
+				docker kill $running_containers
+			else
+				echo "No running containers found"
+			fi
+			;;
+		c)
+			echo "Deleting stale containers"
+			stale_containers=$(docker ps -a -q)
+			if [ -z "$stale_containers" ]; then
+				echo "No stale containers found"
+			else
+				docker rm -v $stale_containers
+			fi
+			;;
+		i)
+			echo "Deleting untagged images"
+			untagged_images=$(docker images | egrep '^<none>' | awk '{print $3}')
+			if [ -z "$untagged_images" ]; then
+				echo "No untagged images found"
+			else
+				docker rmi $untagged_images
+			fi
+			;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+	esac
+done
+
+echo 'done.'
