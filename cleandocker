@@ -1,34 +1,30 @@
 #!/usr/bin/env bash
 set -e
 
-while getopts ":fci" opt; do
+dry_run=false
+
+while getopts ":fcid" opt; do
 	case $opt in
 		f)
-			echo "Stopping running containers"
 			running_containers=$(docker ps -q)
-			if [ ! -z "$running_containers" ]; then
-				docker kill $running_containers
-			else
+			if [ -z "$running_containers" ]; then
 				echo "No running containers found"
 			fi
 			;;
 		c)
-			echo "Deleting stale containers"
 			stale_containers=$(docker ps -a -q)
 			if [ -z "$stale_containers" ]; then
 				echo "No stale containers found"
-			else
-				docker rm -v $stale_containers
 			fi
 			;;
 		i)
-			echo "Deleting untagged images"
 			untagged_images=$(docker images | egrep '^<none>' | awk '{print $3}')
 			if [ -z "$untagged_images" ]; then
 				echo "No untagged images found"
-			else
-				docker rmi $untagged_images
 			fi
+			;;
+		d)
+			dry_run=true
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
@@ -36,5 +32,30 @@ while getopts ":fci" opt; do
 			;;
 	esac
 done
+
+if [ "$dry_run" = true ]; then
+	if [ ! -z "$running_containers" ]; then
+		echo "Running containers would be stopped: " $running_containers
+	fi
+	if [ ! -z "$stale_containers" ]; then
+		echo "Stale containers would be removed: " $stale_containers
+	fi
+	if [ ! -z "$untagged_images" ]; then
+		echo "Untagged images would be removed: " $untagged_images
+	fi
+else
+	if [ ! -z "$running_containers" ]; then
+		echo "Stopping running containers"
+		docker kill $running_containers
+	fi
+	if [ ! -z "$stale_containers" ]; then
+		echo "Deleting stale containers"
+		docker rm -v $stale_containers
+	fi
+	if [ ! -z "$untagged_images" ]; then
+		echo "Deleting untagged images"
+		docker rmi $untagged_images
+	fi
+fi
 
 echo 'done.'
