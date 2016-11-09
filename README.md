@@ -20,3 +20,7 @@ The following command would kill all running docker containers, then remove all 
 ```bash
 sudo ./cleandocker -fci
 ```
+
+# License
+
+`cleandocker` is released under the MIT License. Please see the `LICENSE` file for details.
