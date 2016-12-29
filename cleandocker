@@ -3,7 +3,7 @@ set -e
 
 dry_run=false
 
-while getopts ":fcid" opt; do
+while getopts ":fcivd" opt; do
 	case $opt in
 		f)
 			running_containers=$(docker ps -q)
@@ -21,6 +21,12 @@ while getopts ":fcid" opt; do
 			untagged_images=$(docker images | egrep '^<none>' | awk '{print $3}')
 			if [ -z "$untagged_images" ]; then
 				echo "No untagged images found"
+			fi
+			;;
+		v)
+			dangling_volumes=$(docker volume ls -qf dangling=true)
+			if [ -z "$dangling_volumes" ]; then
+				echo "No dangling volumes found"
 			fi
 			;;
 		d)
@@ -55,6 +61,10 @@ else
 	if [ ! -z "$untagged_images" ]; then
 		echo "Deleting untagged images"
 		docker rmi $untagged_images
+	fi
+	if [ ! -z "$dangling_volumes" ]; then
+		echo "Deleting dangling volumes"
+		docker volume rm $dangling_volumes
 	fi
 fi
 
