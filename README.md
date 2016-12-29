@@ -11,6 +11,7 @@ Simply run the `cleandocker` script with permissions to use docker. It will, by 
 | `-f` | *kill* any running containers |
 | `-c` | *remove* all non-running containers, including any it may have killed in the `-f` step. |
 | `-i` | remove any *untagged* images |
+| `-v` | remove any *dangling* volumes |
 | `-d` | do a dry run of all actions without actually doing anything harmful |
 
 # Example
