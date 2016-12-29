@@ -49,6 +49,9 @@ if [ "$dry_run" = true ]; then
 	if [ ! -z "$untagged_images" ]; then
 		echo "Untagged images would be removed: " $untagged_images
 	fi
+	if [ ! -z "$dangling_volumes" ]; then
+		echo "Dangling volumes would be removed: " $dangling_volumes
+	fi
 else
 	if [ ! -z "$running_containers" ]; then
 		echo "Stopping running containers"
