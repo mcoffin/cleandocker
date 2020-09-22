@@ -1,9 +1,41 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 set -e
 
 dry_run=false
+exec_cmd="$(basename $0)"
 
-while getopts ":fcivd" opt; do
+print_usage() {
+	local opt
+	local OPTARG
+	local OPTIND
+	local print_help=0
+	while getopts ":h" opt; do
+		case ${opt} in
+			h)
+				print_help=1
+				;;
+			\?)
+				echo "Invalid argument: -$OPTARG" >&2
+				return 1
+				;;
+		esac
+	done
+	shift $((OPTIND - 1))
+	echo "Usage: $exec_cmd [-f] [-c] [-i] [-v] [-d]"
+	if [ $print_help -ne 0 ]; then
+		printf '	-f	%s\n' "Kill running containers"
+		printf '	-c	%s\n' "Remove non-running (stale) containers"
+		printf '	-i	%s\n' "Remove un-tagged images that don't have dependencies"
+		printf '	-v	%s\n' "Remove dangling (unattached) volumes"
+		printf '	-d	%s\n' "Dry run (print, but don't perform actions)"
+		printf '	-h	%s\n' "Display help message"
+		printf '	-p	%s\n' "Run 'docker system prune'"
+	fi
+}
+
+system_prune=0
+
+while getopts ":fcivdhp" opt; do
 	case $opt in
 		f)
 			running_containers=$(docker ps -q)
@@ -32,8 +64,16 @@ while getopts ":fcivd" opt; do
 		d)
 			dry_run=true
 			;;
+		h)
+			print_usage -h
+			exit 0
+			;;
+		p)
+			system_prune=1
+			;;
 		\?)
-			echo "Invalid option: -$OPTARG" >&2
+			echo "Unknown argument: -$OPTARG" >&2
+			print_usage >&2
 			exit 1
 			;;
 	esac
@@ -52,6 +92,9 @@ if [ "$dry_run" = true ]; then
 	if [ ! -z "$dangling_volumes" ]; then
 		echo "Dangling volumes would be removed: " $dangling_volumes
 	fi
+	if [ $system_prune -ne 0 ]; then
+		printf 'Command would be run: "%s"\n' "docker system prune"
+	fi
 else
 	if [ ! -z "$running_containers" ]; then
 		echo "Stopping running containers"
@@ -68,6 +111,10 @@ else
 	if [ ! -z "$dangling_volumes" ]; then
 		echo "Deleting dangling volumes"
 		docker volume rm $dangling_volumes
+	fi
+	if [ $system_prune -ne 0 ]; then
+		echo 'Running "docker system prune"'
+		docker system prune
 	fi
 fi
 
