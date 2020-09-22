@@ -13,6 +13,8 @@ Simply run the `cleandocker` script with permissions to use docker. It will, by 
 | `-i` | remove any *untagged* images |
 | `-v` | remove any *dangling* volumes |
 | `-d` | do a dry run of all actions without actually doing anything harmful |
+| `-h` | Print help message |
+| `-p` | Run `docker system prune` |
 
 # Example
 
