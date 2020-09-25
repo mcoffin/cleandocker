@@ -26,6 +26,7 @@ print_usage() {
 		printf '	-f	%s\n' "Kill running containers"
 		printf '	-c	%s\n' "Remove non-running (stale) containers"
 		printf '	-i	%s\n' "Remove un-tagged images that don't have dependencies"
+		printf '	-I	%s\n' "Remove un-tagged images that have a repository and no deps"
 		printf '	-v	%s\n' "Remove dangling (unattached) volumes"
 		printf '	-d	%s\n' "Dry run (print, but don't perform actions)"
 		printf '	-h	%s\n' "Display help message"
@@ -34,8 +35,9 @@ print_usage() {
 }
 
 system_prune=0
+untagged_repo_images=()
 
-while getopts ":fcivdhp" opt; do
+while getopts ":fciIvdhp" opt; do
 	case $opt in
 		f)
 			running_containers=$(docker ps -q)
@@ -53,6 +55,12 @@ while getopts ":fcivdhp" opt; do
 			untagged_images=$(docker images | egrep '^<none>' | awk '{print $3}')
 			if [ -z "$untagged_images" ]; then
 				echo "No untagged images found"
+			fi
+			;;
+		I)
+			untagged_repo_images=($(docker images | grep -vE '^REPOSITORY' | awk '{ if ($2 ~ /^<none>$/) { print $3; } }' | sort -u))
+			if [ ${#untagged_repo_images[@]} -lt 1 ]; then
+				echo 'No untagged repo images found'
 			fi
 			;;
 		v)
@@ -92,6 +100,9 @@ if [ "$dry_run" = true ]; then
 	if [ ! -z "$dangling_volumes" ]; then
 		echo "Dangling volumes would be removed: " $dangling_volumes
 	fi
+	if [ ${#untagged_repo_images[@]} -gt 0 ]; then
+		echo "Untagged repo images would be removed: " "${untagged_repo_images[@]}"
+	fi
 	if [ $system_prune -ne 0 ]; then
 		printf 'Command would be run: "%s"\n' "docker system prune"
 	fi
@@ -107,6 +118,10 @@ else
 	if [ ! -z "$untagged_images" ]; then
 		echo "Deleting untagged images"
 		docker rmi $untagged_images
+	fi
+	if [ ${#untagged_repo_images[@]} -gt 0 ]; then
+		echo "Deleting untagged repo images"
+		(for img in ${untagged_repo_images[@]}; do echo "$img"; done;) | xargs docker rmi || true
 	fi
 	if [ ! -z "$dangling_volumes" ]; then
 		echo "Deleting dangling volumes"
